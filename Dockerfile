@@ -54,7 +54,7 @@ RUN     mkdir -p www/assets www/i/book www/i/upic www/i/tmp protected/runtime &&
 	    -e '/adminEmail/s%=>.*%=> "'$ADMIN_EMAIL'",%' \
 	    -e '/commentEmail/s%=>.*%=> "'$COMMENT_EMAIL'",%' \
 	    -e '/systemEmail/s%=>.*%=> "'$SYSTEM_EMAIL'",%' \
-	    -i main.php console.php
+	    -i params.php console.php
 
 # Start postgresql, create user and database, load SQL dump, run maintenance script
 RUN     /etc/init.d/postgresql start && \
