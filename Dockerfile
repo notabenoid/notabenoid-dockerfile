@@ -47,8 +47,8 @@ RUN   ( echo "0 0 * * * /usr/bin/php /srv/$DOMAIN/protected/yiic maintain midnig
 # Clone the notabenoid repo, create directories, add write permissions, fix config files
 RUN     git clone --depth=1 https://github.com/notabenoid/notabenoid.git /srv/$DOMAIN
 WORKDIR /srv/$DOMAIN
-RUN     mkdir -p www/assets www/i/book www/i/upic www/i/tmp protected/runtime && \
-	chown www-data www/assets www/i/book www/i/upic www/i/tmp protected/runtime && \
+RUN     mkdir -p www/assets www/i/book www/i/upic www/i/tmp/upiccut protected/runtime && \
+	chown www-data www/assets www/i/book www/i/upic www/i/tmp www/i/tmp/upiccut protected/runtime && \
 	cd protected/config && \
 	sed -e '/domain/s%=>.*%=> "'$DOMAIN'",%' \
 	    -e '/adminEmail/s%=>.*%=> "'$ADMIN_EMAIL'",%' \
