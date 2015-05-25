@@ -70,5 +70,4 @@ EXPOSE 80
 # Add VOLUMEs to allow backup of config, logs and databases
 VOLUME  ["/etc", "/var/log", "/var/lib/postgresql"]
 
-ENTRYPOINT ["/entrypoint.sh"]
-
+ENTRYPOINT ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]
