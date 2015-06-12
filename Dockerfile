@@ -37,9 +37,6 @@ COPY    pg_hba.conf /etc/postgresql/9.3/main/
 # Configure supervisord
 COPY    supervisor/*.conf /etc/supervisor/conf.d/
 
-# Entry point
-COPY    entrypoint.sh /
-
 # Add cron jobs
 RUN   ( echo "0 0 * * * /usr/bin/php /srv/$DOMAIN/protected/yiic maintain midnight" && \
 	echo "0 4 * * * /usr/bin/php /srv/$DOMAIN/protected/yiic maintain dailyfixes" ) >> /etc/crontab
