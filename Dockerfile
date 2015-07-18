@@ -9,6 +9,7 @@ ENV SYSTEM_EMAIL=no-reply@example.com
 
 # Update the system and install all the necessary packages
 RUN     apt-get update && \
+	apt-get upgrade -y && \
 	apt-get install -y \
 		git \
 		memcached \
