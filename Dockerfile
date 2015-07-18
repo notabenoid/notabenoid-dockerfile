@@ -30,6 +30,7 @@ RUN     sed -i 's,\$DOMAIN,'$DOMAIN',' /etc/nginx/sites-available/default && \
 
 # Configure php5-fpm
 RUN     sed -i 's,.*daemonize =.*,daemonize = no,' /etc/php5/fpm/php-fpm.conf && \
+	sed -i 's,.*max_input_vars =.*,max_input_vars = 4000,' /etc/php5/fpm/php.ini && \
 	sed -i 's,.*error_reporting =.*,error_reporting = E_ALL \& ~E_DEPRECATED \& ~E_STRICT \& ~E_NOTICE,' /etc/php5/fpm/php.ini
 
 # Configure postgresql
