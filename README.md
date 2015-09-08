@@ -1,5 +1,7 @@
 # notabenoid-dockerfile
 
+*More information [in Russian](README.ru.md).*
+
 ## Usage
 
 ### Building the image
@@ -15,6 +17,8 @@ Or, alternatively, skip the building step and use the image uploaded to the Dock
     docker run -p 127.0.0.1:8080:80 --name notabenoid opennota/notabenoid
 
 ## Development
+
+*Not up to date. Read the [russian version](README.ru.md).*
 
 From this point on I'm assuming that you already have built an image named `notabenoid`.
 
