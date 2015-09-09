@@ -1,7 +1,7 @@
 server {
     server_name $DOMAIN;
     listen 80;
-    root /srv/$DOMAIN/www;
+    root /notabenoid/site/www;
     index index.php;
     location / {
         try_files $uri $uri/ /index.php?$args;

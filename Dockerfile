@@ -1,17 +1,13 @@
 FROM ubuntu:14.04
 MAINTAINER opennota <opennota@gmail.com>
 
-# Change these variables
-ENV DOMAIN=example.com
-ENV ADMIN_EMAIL=admin@example.com
-ENV COMMENT_EMAIL=comment@example.com
-ENV SYSTEM_EMAIL=no-reply@example.com
-
-# Update the system and install all the necessary packages
+# Install all the necessary packages
+# This is the longest build step, so it is at the top of the Dockerfile 
+# for Docker to be able to cache the results of it for later rebuilds.
 RUN     apt-get update && \
 	apt-get upgrade -y && \
 	apt-get install -y \
-		git \
+		wget \
 		memcached \
 		nginx \
 		php5 \
@@ -21,11 +17,28 @@ RUN     apt-get update && \
 		php5-memcache \
 		php5-pgsql \
 		postgresql \
-		supervisor
+		supervisor && \
+	rm -rf /var/lib/apt/lists/*
+
+###### VARIABLES
+###### Change them
+
+# URL of tar.gz archive with Notabenoid code
+# For bleading edge code use https://github.com/notabenoid/notabenoid/tarball/master
+# For a specific version use https://github.com/notabenoid/notabenoid/tarball/[tag or branch or commit]
+# In this case we are referencing a version that seems to work
+ENV NB_ARCHIVE_URL=https://github.com/notabenoid/notabenoid/tarball/1507a715a49e6161a3f287599bacbb1884e8e70a
+
+ENV NB_DOMAIN=example.com
+ENV NB_EMAIL_ADMIN=admin@example.com
+ENV NB_EMAIL_COMMENT=comment@example.com
+ENV NB_EMAIL_SYSTEM=no-reply@example.com
+
+###### END OF VARIABLES
 
 # Configure nginx
 COPY    nginx /etc/nginx/sites-available/default
-RUN     sed -i 's,\$DOMAIN,'$DOMAIN',' /etc/nginx/sites-available/default && \
+RUN     sed -i 's,\$DOMAIN,'$NB_DOMAIN',' /etc/nginx/sites-available/default && \
 	echo "daemon off;" >> /etc/nginx/nginx.conf
 
 # Configure php5-fpm
@@ -33,40 +46,48 @@ RUN     sed -i 's,.*daemonize =.*,daemonize = no,' /etc/php5/fpm/php-fpm.conf &&
 	sed -i 's,.*max_input_vars =.*,max_input_vars = 4000,' /etc/php5/fpm/php.ini && \
 	sed -i 's,.*error_reporting =.*,error_reporting = E_ALL \& ~E_DEPRECATED \& ~E_STRICT \& ~E_NOTICE,' /etc/php5/fpm/php.ini
 
-# Configure postgresql
+# Configure postgresql access, remove default database 
 COPY    pg_hba.conf /etc/postgresql/9.3/main/
+RUN sed -i "s/'\\/var\\/lib\\/postgresql\\/9.3\\/main'/'\\/notabenoid\\/dbdata'/g" /etc/postgresql/9.3/main/postgresql.conf \
+	&& rm -rf /var/lib/postgresql
 
 # Configure supervisord
 COPY    supervisor/*.conf /etc/supervisor/conf.d/
 
 # Add cron jobs
-RUN   ( echo "0 0 * * * /usr/bin/php /srv/$DOMAIN/protected/yiic maintain midnight" && \
-	echo "0 4 * * * /usr/bin/php /srv/$DOMAIN/protected/yiic maintain dailyfixes" ) >> /etc/crontab
+RUN   ( echo "0 0 * * * /usr/bin/php /notabenoid/site/protected/yiic maintain midnight" && \
+	echo "0 4 * * * /usr/bin/php /notabenoid/site/protected/yiic maintain dailyfixes" ) >> /etc/crontab
 
-# Clone the notabenoid repo, create directories, add write permissions, fix config files
-RUN     git clone --depth=1 https://github.com/notabenoid/notabenoid.git /srv/$DOMAIN
-WORKDIR /srv/$DOMAIN
-RUN     mkdir -p www/assets www/i/book www/i/upic www/i/tmp/upiccut protected/runtime && \
-	chown www-data www/assets www/i/book www/i/upic www/i/tmp www/i/tmp/upiccut protected/runtime && \
-	cd protected/config && \
-	sed -e '/domain/s%=>.*%=> "'$DOMAIN'",%' \
-	    -e '/adminEmail/s%=>.*%=> "'$ADMIN_EMAIL'",%' \
-	    -e '/commentEmail/s%=>.*%=> "'$COMMENT_EMAIL'",%' \
-	    -e '/systemEmail/s%=>.*%=> "'$SYSTEM_EMAIL'",%' \
+# Download the application
+WORKDIR /notabenoid
+RUN     wget --no-verbose -O site.tar.gz $NB_ARCHIVE_URL \
+	&& mkdir site \
+	&& tar xf site.tar.gz -C site --strip-components 1 \
+	&& rm site.tar.gz
+
+# Create temp files directories, add write permissions
+WORKDIR /notabenoid
+RUN     mkdir -p tmp/assets tmp/upiccut tmp/runtime \
+	&& chown www-data:www-data tmp/assets tmp/upiccut tmp/runtime
+
+# Edit notabenoid config files
+WORKDIR /notabenoid/site
+RUN     cd protected/config && \
+	sed -e '/domain/s%=>.*%=> "'$NB_DOMAIN'",%' \
+	    -e '/adminEmail/s%=>.*%=> "'$NB_EMAIL_ADMIN'",%' \
+	    -e '/commentEmail/s%=>.*%=> "'$NB_EMAIL_COMMENT'",%' \
+	    -e '/systemEmail/s%=>.*%=> "'$NB_EMAIL_SYSTEM'",%' \
 	    -i params.php console.php
 
-# Start postgresql, create user and database, load SQL dump, run maintenance script
-RUN     /etc/init.d/postgresql start && \
-	createuser -U postgres notabenoid && \
-	createdb -U postgres -O notabenoid notabenoid && \
-	psql -U notabenoid < init.sql && \
-	php protected/yiic maintain dailyfixes && \
-	/etc/init.d/postgresql stop
+# Add important VOLUMEs
+VOLUME  ["/notabenoid/dbdata", "/notabenoid/files"]
 
 # Expose the Nginx port
 EXPOSE 80
 
-# Add VOLUMEs to allow backup of config, logs and databases
-VOLUME  ["/etc", "/var/log", "/var/lib/postgresql"]
+# Setup ENTRYPOINT
+COPY    docker-entrypoint.sh /
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
-ENTRYPOINT ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]
+# Start the application
+CMD ["notabenoid"]
