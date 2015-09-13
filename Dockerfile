@@ -84,8 +84,8 @@ VOLUME  ["/notabenoid/dbdata", "/notabenoid/files"]
 EXPOSE 80
 
 # Setup entry point
-COPY    docker-entrypoint.sh /
-ENTRYPOINT ["/docker-entrypoint.sh"]
+COPY    entrypoint.sh /
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Start the application
 CMD ["notabenoid"]
